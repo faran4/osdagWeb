@@ -1,0 +1,18 @@
+# Django & Django REST Framework
+Django>=4.0
+djangorestframework>=3.14.0
+django-cors-headers
+
+# Database (SQLite)
+sqlite3
+
+# Osdag Dependencies
+numpy
+scipy
+matplotlib
+pandas
+sympy
+reportlab
+PyQt5
+shapely
+importlib_resources

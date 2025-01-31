@@ -1,0 +1,381 @@
+@tailwind base;
+@tailwind components;
+@tailwind utilities;
+
+*{
+  margin: 0; /* Remove default margin */
+  padding: 0; /* Remove default padding */
+  box-sizing: border-box; /* Include padding and border in element's total width and height */
+  font-family: Helvetica;
+  font-size: 9pt;
+}
+
+.sidebar {
+  background-color: #a0c829;
+  box-shadow: rgba(9, 30, 66, 0.25) 0px 4px 8px -2px, rgba(9, 30, 66, 0.08) 0px 0px 0px 1px;
+}
+
+.sidebar-button {
+  width: 100%;
+  padding-top: 1px;
+  padding-bottom: 1px;
+  border: 1px solid white;
+  border-radius: 5px;
+  background-color: #925a5b; /* Gradient for buttons */
+  color: white;
+  font-size: 9pt;
+  text-align: center;
+  cursor: pointer;
+  transition: all 0.3s ease;
+}
+
+.sidebar-button:hover {
+  background: rgb(152,158,133);
+  background: linear-gradient(90deg, rgba(152,158,133,1) 0%, rgba(159,0,3,1) 50%, rgba(149,158,121,1) 100%);
+}
+
+.sidebar-button.active {
+  background: linear-gradient(to bottom, #f3face 1%, #b90104 99%);
+}
+
+.dark-mode-toggle {
+  display: flex;
+  align-items: center;
+  font-size: 12px;
+  color: #333;
+  gap: 5px;
+}
+
+.switch {
+  position: relative;
+  display: inline-block;
+  width: 20px;
+  height: 10px;
+}
+
+.switch input {
+  opacity: 0;
+  width: 0;
+  height: 0;
+}
+
+.slider {
+  position: absolute;
+  top: 0;
+  left: 0;
+  right: 0;
+  bottom: 0;
+  background-color: #ccc;
+  border-radius: 30px;
+  cursor: pointer;
+  transition: background-color 0.2s;
+}
+
+.slider:before {
+  position: absolute;
+  content: "";
+  height: 12px;
+  width: 12px;
+  left: 0px;
+  bottom: 0px;
+  background-color: white;
+  border-radius: 50%;
+  transition: transform 0.2s;
+}
+
+input:checked + .slider {
+  background-color: darkblue;
+}
+
+input:checked + .slider:before {
+  transform: translateX(10px);
+}
+
+.Grad {
+  background: linear-gradient(to bottom, #f7d4d4 25%, #925a5b 75%);
+}
+
+.grade:hover {
+  background: linear-gradient(to bottom, #f7d4d4 25%, #925a5b 75%);
+}
+
+.greenGrade:hover {
+  background: linear-gradient(to bottom, #ffffff 20%, #a0c829 80%);;
+}
+
+.homeimg {
+  width: 3rem;
+  position: absolute;
+  top: 0;
+  right: 0;
+  margin-top: 0.25rem;
+  margin-right: 1rem;
+  cursor: pointer;
+}
+
+.start-button {
+  width: 12rem;
+  padding-top: 1px;
+  padding-bottom: 1px;
+  border: 1px solid white;
+  border-radius: 5px;
+  background-color: #925a5b; /* Gradient for buttons */
+  color: white;
+  font-size: 9pt;
+  text-align: center;
+  cursor: pointer;
+  transition: all 0.3s ease;
+}
+
+.start-button:hover {
+  background: linear-gradient(to bottom, #f7d4d4 25%, #925a5b 75%);
+}
+
+.container {
+  display: grid;
+  grid-template-areas:
+    "header header header"
+    "input-dock center output-dock";
+  grid-template-rows: auto 1fr; /* Header takes auto height, content takes remaining space */
+  grid-template-columns: 1fr 3fr 1fr; /* InputDock, Center, and OutputDock areas */
+  height: 100vh; /* Full viewport height */
+}
+
+.header {
+  grid-area: header;
+  background-color: #f0f0f0;
+}
+
+.input-dock {
+  grid-area: input-dock;
+  background-color: #f9f9f9;
+  padding: 10px;
+  overflow-y: auto;
+  width: 100%; 
+}
+
+.center-container {
+  grid-area: center;
+  display: flex;
+  flex-direction: column;
+  justify-content: center;
+  align-items: center;
+  background-color: #ffffff;
+  padding: 10px;
+  min-width: 0;
+}
+
+.output-dock {
+  grid-area: output-dock;
+  background-color: #f9f9f9;
+  padding: 10px;
+  overflow-y: auto;
+  width: 100%;
+}
+
+.model {
+  margin-bottom: 20px;
+  width: 80%;
+  background-color: #eef;
+  padding: 15px;
+  border: 1px solid #ddd;
+  text-align: center;
+}
+
+.message-box {
+  width: 80%;
+  background-color: #fee;
+  padding: 15px;
+  border: 1px solid #ddd;
+  text-align: center;
+}
+
+/* Responsive Design */
+
+/* Column Layout for Phone View */
+@media (max-width: 768px) {
+  .container {
+    grid-template-areas:
+      "header"
+      "input-dock"
+      "center"
+      "output-dock";
+    grid-template-rows: auto auto 1fr auto; /* Stack elements vertically */
+    grid-template-columns: 1fr; /* Full-width columns */
+  }
+
+  .center-container {
+    flex-direction: column;
+    gap: 10px; /* Add spacing between elements */
+  }
+
+  .model,
+  .message-box {
+    width: 100%; /* Full width on small screens */
+  }
+}
+
+.hide-scrollbar {
+  overflow-y: scroll;
+  scrollbar-width: none; /* For Firefox */
+  -ms-overflow-style: none; /* For Internet Explorer and Edge */
+}
+
+/* For WebKit-based browsers (Chrome, Safari, etc.) */
+.hide-scrollbar::-webkit-scrollbar {
+  display: none;
+}
+
+/* Define reusable Tailwind utility classes */
+.form-label {
+  @apply flex items-center w-full justify-between;
+}
+
+.form-input {
+  @apply w-1/2 border rounded-md p-1 mt-1;
+}
+
+.form-input-dropdown {
+  max-height: 200px; /* Limit the dropdown height */
+  overflow-y: auto; /* Enable scrolling for overflow */
+}
+
+.form-input.around {
+  @apply focus:outline-none focus:ring focus:ring-blue-200 border border-blue-400 p-0;
+}
+
+.heading {
+  @apply font-bold text-lg mb-1;
+}
+
+.section-container {
+  @apply mb-1;
+}
+
+.container-box {
+  @apply bg-gray-100 border border-gray-400 p-4 w-full h-[80%] hide-scrollbar;
+}
+
+.main-button {
+  width: auto;
+  background-color: #925a5b;
+  padding: 0.4rem 2rem;
+  border-radius: 4px;
+  color: white;
+  transition: all 0.3s ease;
+}
+
+.main-button:hover {
+  background: linear-gradient(to bottom, #f7d4d4 25%, #925a5b 75%);
+}
+
+/* Output Dock Reusable Styles */
+.output-container {
+  @apply bg-gray-100 border border-gray-400 p-4 w-full h-[80%] overflow-auto;
+}
+
+.output-heading {
+  @apply font-bold text-xl mb-2;
+}
+
+.output-section {
+  @apply mb-1;
+}
+
+.output-subheading {
+  @apply font-semibold text-lg mb-1;
+}
+
+.output-label {
+  @apply mb-1 flex items-center justify-between;
+}
+
+.output-input {
+  @apply w-[57%] rounded-md mt-1 text-sm focus:outline-none focus:ring focus:ring-blue-200 border border-blue-400;
+}
+
+.output-set {
+  @apply flex items-center justify-between;
+}
+
+.output-button {
+  @apply w-[57%] bg-[#925a5b] text-white font-thin py-1 px-4 rounded-md mt-1;
+}
+
+.outputInactive-button {
+  @apply w-[57%] bg-gray-500 text-white font-thin py-1 px-4 rounded-md mt-1;
+}
+
+.main-button.outbutton {
+  margin-top: 0.5rem;
+  width: 14rem;
+}
+
+/* Popup Details */
+.popup-details {
+  display: flex;
+  flex-direction: column;
+  gap: 10px;
+  padding: 2rem;
+  border: 1px solid #ccc;
+}
+
+.popup-detail {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  margin-bottom: 1rem;
+}
+
+.popup-detail span {
+  font-weight: 100;
+}
+
+.popup-detail input {
+  width: 150px;
+  padding: 3px;
+  border: 1px solid rgb(66, 66, 255);
+  border-radius: 4px;
+}
+
+.popup-detail input:focus {
+  outline: none;
+  border: 1px solid rgb(66, 66, 255);
+}
+
+.popup-overlay {
+  @apply fixed z-[1000] inset-0 bg-black bg-opacity-75 transition-opacity duration-300;
+}
+
+/* Custom scrollbar styling */
+.custom-scrollbar::-webkit-scrollbar {
+  width: 10px; /* Width of the scrollbar */
+  border-radius: 10px; /* Rounded edges */
+}
+
+.custom-scrollbar::-webkit-scrollbar-track {
+  background: transparent; /* Background of the scrollbar track */
+}
+
+.custom-scrollbar::-webkit-scrollbar-thumb {
+  background-color: #ccc; /* Default color of the scrollbar thumb */
+  border-radius: 10px; /* Rounded thumb */
+  transition: background-color 0.3s ease; /* Smooth transition on hover */
+}
+
+.custom-scrollbar::-webkit-scrollbar-thumb:hover {
+  background-color: #a0c829; /* Change to green on hover */
+}
+
+.custom-scrollbar::-webkit-scrollbar-button {
+  display: none; /* Hide the scrollbar buttons (arrows) */
+}
+
+.report-style {
+  @apply w-[75%] border border-blue-500 focus:outline-none rounded-md;
+}
+
+.report-button {
+  @apply bg-[#8b5c5c] text-white py-1 px-3 rounded-md hover:bg-[#764a4a] mr-2
+}
+
