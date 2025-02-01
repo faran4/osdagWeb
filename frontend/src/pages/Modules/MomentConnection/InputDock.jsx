@@ -12,9 +12,16 @@ import BoltDiameter from "../../popUps/inputDockPops/BoltDiameter";
 import BoltPropertyClass from "../../popUps/inputDockPops/BoltPropertyClass";
 import FlangeThickness from "../../popUps/inputDockPops/FlangeThickness";
 import WebSpliceThickness from "../../popUps/inputDockPops/WebSpliceThickness";
-import { resetInputs, setBoltType, setType } from "../../../redux/features/defaultSlice";
+import {
+  resetInputs,
+  setBoltType,
+  setType,
+} from "../../../redux/features/defaultSlice";
 import { setSelectedGrade } from "../../../redux/features/materialSlice";
-import { setSelectedBeam, setTypeBeam } from "../../../redux/features/beamSlice";
+import {
+  setSelectedBeam,
+  setTypeBeam,
+} from "../../../redux/features/beamSlice";
 import { resetDiameters } from "../../../redux/features/boltDiameterSlice";
 import {
   resetFlangeThickness,
@@ -85,7 +92,22 @@ const InputDock = () => {
 
   // Collect all data here
   const handleSubmit = (event) => {
-    event.preventDefault();
+    if(event) event.preventDefault();
+
+    //  Validate Required Inputs
+    if (!shearForce || shearForce === "") {
+      alert("Shear Force is required!");
+      return;
+    }
+    if (!selectedBeam || selectedBeam === "") {
+      alert("Please select a Beam!");
+      return;
+    }
+    if (!boltType || boltType === "") {
+      alert("Please select a Bolt Type!");
+      return;
+    }
+
     const formData = {
       bendingMoment,
       shearForce,
@@ -120,16 +142,16 @@ const InputDock = () => {
 
     //dispatch API Call
     dispatch(submitDesignData(formData))
-    .unwrap()
-    .then((response) => {
-      console.log("Success", response);
-      alert("Data submitted successfully");
-    })
-    .catch((error) => {
-      console.error("Error", error);
-      alert("An error occurred");
-    })
-    
+      .unwrap()
+      .then((response) => {
+        console.log("Success", response);
+        alert("Data submitted successfully");
+      })
+      .catch((error) => {
+        console.error("Error", error);
+        alert("An error occurred");
+      });
+
     dispatch(setDesignActive(true)); //set the state to true
     alert("Design Done");
   };
@@ -247,8 +269,8 @@ const InputDock = () => {
           Reset
         </button>
         <button
-          type="submit"
-          onClick={() => formRef.current.requestSubmit()}
+          type="button"
+          onClick={handleSubmit}
           className="main-button"
         >
           Design

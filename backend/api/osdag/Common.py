@@ -10,11 +10,14 @@ import logging
 from importlib.resources import files
 from django.conf import settings
 
-PATH_TO_DATABASE = os.path.join(settings.BASE_DIR, "database", "Intg_osdag.sqlite")
-import sqlite3
+BASE_DIR = settings.BASE_DIR
+PATH_TO_DATABASE = os.path.join(BASE_DIR, "database", "Intg_osdag.sqlite")
 
-from .utils.common.other_standards import *
-from .utils.common.component import *
+import sqlite3
+from api.osdag.other_standards import *
+# from .utils.common.other_standards import *
+from api.osdag.component import *
+# from .utils.common.component import *
 # from design_type.connection.fin_plate_connection import FinPlateConnection
 # from design_type.connection.column_cover_plate import ColumnCoverPlate
 

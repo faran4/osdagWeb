@@ -169,9 +169,6 @@ xii)\tRed lead painted surface \t\t\t\t\t\t\t\t\t\t\t\t\t\t\t\t\t 0.1`}
             >
               Defaults
             </button>
-            <button className="w-[14%] greenGrade font-thin px-3 py-1 bg-gray-300 border border-yellow-200 rounded-md">
-              Save
-            </button>
           </div>
         </div>
       </div>

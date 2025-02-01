@@ -4,7 +4,6 @@ from rest_framework import status
 import sqlite3
 from .serializers import BoltDiameterSerializer, MaterialSerializer, BeamSerializer, DesignInputSerializer
 from django.conf import settings
-from .beam_cover_plate import BeamCoverPlate
 
 class HelloWorld(APIView):
     def get(self, request):
@@ -13,7 +12,7 @@ class HelloWorld(APIView):
 class BoltDiameterAPIView(APIView):
     def get(self, request):
         # Define the path to the database
-        db_path = settings.BASE_DIR / 'database/Intg_osdag.db'
+        db_path = settings.BASE_DIR / 'database/Intg_osdag.sqlite'
 
         # Connect to the database
         conn = sqlite3.connect(db_path)
@@ -39,7 +38,7 @@ class BoltDiameterAPIView(APIView):
 class MaterialAPIView(APIView):
     def get(self, request):
         # Define the path to the database
-        db_path = settings.BASE_DIR / 'database/Intg_osdag.db'
+        db_path = settings.BASE_DIR / 'database/Intg_osdag.sqlite'
 
         # Connect to the database
         conn = sqlite3.connect(db_path)
@@ -68,7 +67,7 @@ class MaterialAPIView(APIView):
 class BeamAPIView(APIView):
     def get(self, request):
         # Define the path to the database (update the path as needed)
-        db_path = settings.BASE_DIR / 'database/Intg_osdag.db'
+        db_path = settings.BASE_DIR / 'database/Intg_osdag.sqlite'
 
         # Connect to the SQLite database
         conn = sqlite3.connect(db_path)
@@ -110,39 +109,70 @@ class SubmitDesignDataAPIView(APIView):
         if serializer.is_valid():
             validated_data = serializer.validated_data
 
-            try:
-                # Initialize BeamCoverPlate with input data
-                beam_cover_plate = BeamCoverPlate(validated_data)
+            # Assigning data to variables
+            bending_moment = validated_data.get("bendingMoment")
+            shear_force = validated_data.get("shearForce")
+            axial_force = validated_data.get("axialForce")
+            bolt_type = validated_data.get("boltType")
+            selected_beam = validated_data.get("selectedBeam")
+            beam_properties = validated_data.get("beamProperties")  # JSON object
+            flange_thickness_selected = validated_data.get("flangeThicknessSelected")
+            web_thickness_selected = validated_data.get("webThicknessSelected")
+            selected_diameters = validated_data.get("selectedDiameters")
 
-                # Process Data (Perform Calculations)
-                beam_cover_plate.process_data()
+            # Mechanical properties
+            modulus_of_elasticity = validated_data.get("modulusOfElasticity")
+            modulus_of_rigidity = validated_data.get("modulusOfRigidity")
+            poissons_ratio = validated_data.get("poissonsRatio")
+            thermal_expansion_coefficient = validated_data.get("thermalExpansionCoefficient")
 
-                # Define file paths for generated outputs
-                model_filename = "beam_cover_plate_3d.step"
-                report_filename = "beam_cover_plate_report.pdf"
-                model_path = os.path.join(settings.MEDIA_ROOT, model_filename)
-                report_path = os.path.join(settings.MEDIA_ROOT, report_filename)
+            # Strength parameters
+            ultimate_strength = validated_data.get("ultimateStrength")
+            yield_strength_20mm = validated_data.get("yieldStrength20mm")
+            yield_strength_40mm = validated_data.get("yieldStrength40mm")
+            yield_strength_greater_40mm = validated_data.get("yieldStrengthGreater40mm")
 
-                # Generate the 3D model
-                beam_cover_plate.generate_3D_model(model_path)
+            # Additional design parameters
+            slip_factor = validated_data.get("slipFactor")
+            edge_method = validated_data.get("edgeMethod")
+            gap_between_beam_and_support = validated_data.get("gapBetweenBeamAndSupport")
+            corrosive_influence = validated_data.get("corrosiveInfluence")
+            design_method = validated_data.get("designMethod")
+            type_beam = validated_data.get("typeBeam")
 
-                # Generate the design report
-                beam_cover_plate.generate_design_report(report_path)
+            # Example calculation (replace with actual calculations)
+            example_calculation = (bending_moment or 0) + (shear_force or 0) - (axial_force or 0)
 
-                # Construct URLs for accessing generated files
-                model_url = request.build_absolute_uri(settings.MEDIA_URL + model_filename)
-                report_url = request.build_absolute_uri(settings.MEDIA_URL + report_filename)
-
-                return Response(
-                    {
-                        "message": "Calculation successful",
-                        "3d_model_url": model_url,
-                        "report_url": report_url,
-                    },
-                    status=status.HTTP_200_OK,
-                )
-
-            except Exception as e:
-                return Response({"error": str(e)}, status=status.HTTP_500_INTERNAL_SERVER_ERROR)
-
+            # Return response with the received data and example calculations
+            return Response(
+                {
+                    "message": "Form data received successfully",
+                    "bending_moment": bending_moment,
+                    "shear_force": shear_force,
+                    "axial_force": axial_force,
+                    "bolt_type": bolt_type,
+                    "selected_beam": selected_beam,
+                    "beam_properties": beam_properties,
+                    "flange_thickness_selected": flange_thickness_selected,
+                    "web_thickness_selected": web_thickness_selected,
+                    "selected_diameters": selected_diameters,
+                    "modulus_of_elasticity": modulus_of_elasticity,
+                    "modulus_of_rigidity": modulus_of_rigidity,
+                    "poissons_ratio": poissons_ratio,
+                    "thermal_expansion_coefficient": thermal_expansion_coefficient,
+                    "ultimate_strength": ultimate_strength,
+                    "yield_strength_20mm": yield_strength_20mm,
+                    "yield_strength_40mm": yield_strength_40mm,
+                    "yield_strength_greater_40mm": yield_strength_greater_40mm,
+                    "slip_factor": slip_factor,
+                    "edge_method": edge_method,
+                    "gap_between_beam_and_support": gap_between_beam_and_support,
+                    "corrosive_influence": corrosive_influence,
+                    "design_method": design_method,
+                    "type_beam": type_beam,
+                    "example_calculation": example_calculation,
+                },
+                status=status.HTTP_200_OK,
+            )
+        
         return Response(serializer.errors, status=status.HTTP_400_BAD_REQUEST)

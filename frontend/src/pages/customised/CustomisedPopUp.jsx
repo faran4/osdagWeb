@@ -83,7 +83,7 @@ const CustomisedPopup = ({
         <div className="p-4 w-full h-full">
           <div className="flex justify-between items-center mb-4 border-b pb-2">
             <h3 className="text-lg font-thin">Customized</h3>
-            <button onClick={onClose}>
+            <button type="button" onClick={onClose}>
               <img
                 src={window_close}
                 alt="Close"
@@ -117,24 +117,28 @@ const CustomisedPopup = ({
             {/* Buttons */}
             <div className="flex flex-col gap-2">
               <button
+                type="button"
                 onClick={shiftAllToRight}
                 className="report-button grade w-24"
               >
                 {">>"}
               </button>
               <button
+                type="button"
                 onClick={shiftToRight}
                 className="report-button grade w-24"
               >
                 {">"}
               </button>
               <button
+                type="button"
                 onClick={shiftToLeft}
                 className="report-button grade w-24"
               >
                 {"<"}
               </button>
               <button
+                type="button"
                 onClick={shiftAllToLeft}
                 className="report-button grade w-24"
               >
@@ -166,6 +170,7 @@ const CustomisedPopup = ({
           </div>
           <div className="mt-16 text-center">
             <button
+              type="button"
               onClick={handleSubmit}
               className="report-button grade w-40"
             >
