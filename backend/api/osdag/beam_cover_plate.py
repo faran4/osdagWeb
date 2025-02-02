@@ -18,7 +18,10 @@ from api.osdag.Common import *
 from api.osdag.load import Load
 from api.osdag.reportGenerator_latex import CreateLatex
 from api.osdag.Report_functions import *
+import logging
+import math
 
+logger = logging.getLogger(__name__) 
 
 class BeamCoverPlate(MomentConnection):
 
@@ -26,181 +29,32 @@ class BeamCoverPlate(MomentConnection):
         super(BeamCoverPlate, self).__init__()
         self.design_status = False
 
-    ###############################################
-    # Design Preference Functions Start
-    ###############################################
-    def tab_list(self):
+    def generate_stl(beam_cover):
         """
-
-        :return: This function returns the list of tuples. Each tuple will create a tab in design preferences, in the
-        order they are appended. Format of the Tuple is:
-        [Tab Title, Type of Tab, function for tab content)
-        Tab Title : Text which is displayed as Title of Tab,
-        Type of Tab: There are Three types of tab layouts.
-            Type_TAB_1: This have "Add", "Clear", "Download xlsx file" "Import xlsx file"
-            TYPE_TAB_2: This contains a Text box for side note.
-            TYPE_TAB_3: This is plain layout
-        function for tab content: All the values like labels, input widgets can be passed as list of tuples,
-        which will be displayed in chosen tab layout
-
+        Generate and save the STL file.
         """
-        tabs = []
+        stl_dir = os.path.join(settings.MEDIA_ROOT)
+        os.makedirs(stl_dir, exist_ok=True)  # Ensure directory exists
+        stl_path = os.path.join(stl_dir, "beam_cover_plate.stl")
 
-        t1 = (KEY_DISP_BEAMSEC, TYPE_TAB_1, self.tab_section)
-        tabs.append(t1)
+        # Example STL generation (Replace with actual Osdag STL export)
+        with open(stl_path, "w") as f:
+            f.write("Generated STL file for Beam Cover Plate")
 
-        t6 = ("Connector", TYPE_TAB_2, self.plate_connector_values)
-        tabs.append(t6)
-
-        t2 = ("Bolt", TYPE_TAB_2, self.bolt_values)
-        tabs.append(t2)
-
-        t4 = ("Detailing", TYPE_TAB_2, self.detailing_values)
-        tabs.append(t4)
-
-        t5 = ("Design", TYPE_TAB_2, self.design_values)
-        tabs.append(t5)
-
-        return tabs
-
-    def tab_value_changed(self):
+        return stl_path
+    
+    def generate_design_report(beam_cover):
         """
-
-        :return: This function is used to update the values of the keys in design preferences,
-         which are dependent on other inputs.
-         It returns list of tuple which contains, tab name, keys whose values will be changed,
-         function to change the values and arguments for the function.
-
-         [Tab Name, [Argument list], [list of keys to be updated], input widget type of keys, change_function]
-
-         Here Argument list should have only one element.
-         Changing of this element,(either changing index or text depending on widget type),
-         will update the list of keys (this can be more than one).
-
-         """
-
-        change_tab = []
-
-        t2 = (KEY_DISP_BEAMSEC, [KEY_SEC_MATERIAL], [KEY_SEC_FU, KEY_SEC_FY], TYPE_TEXTBOX, self.get_fu_fy_I_section)
-        change_tab.append(t2)
-
-        t3 = ("Connector", [KEY_CONNECTOR_MATERIAL], [KEY_CONNECTOR_FU, KEY_CONNECTOR_FY_20, KEY_CONNECTOR_FY_20_40,
-                                                      KEY_CONNECTOR_FY_40], TYPE_TEXTBOX, self.get_fu_fy)
-        change_tab.append(t3)
-
-        t5 = (KEY_DISP_BEAMSEC, ['Label_1', 'Label_2', 'Label_3', 'Label_4', 'Label_5'],
-              ['Label_11', 'Label_12', 'Label_13', 'Label_14', 'Label_15', 'Label_16', 'Label_17', 'Label_18',
-               'Label_19', 'Label_20', 'Label_21', 'Label_22', KEY_IMAGE], TYPE_TEXTBOX, self.get_I_sec_properties)
-        change_tab.append(t5)
-
-        t6 = (KEY_DISP_BEAMSEC, [KEY_SECSIZE], [KEY_SOURCE], TYPE_TEXTBOX, self.change_source)
-        change_tab.append(t6)
-
-        return change_tab
-
-    def edit_tabs(self):
-        """ This function is required if the tab name changes based on connectivity or profile or any other key.
-                Not required for this module but empty list should be passed"""
-        return []
-
-
-
-    def input_dictionary_design_pref(self):
+        Generates the design report PDF using PyLaTeX.
         """
+        report_dir = os.path.join(settings.MEDIA_ROOT)
+        os.makedirs(report_dir, exist_ok=True)  # Ensure directory exists
+        report_path = os.path.join(report_dir, "design_report.pdf")
 
-        :return: This function is used to choose values of design preferences to be saved to design dictionary.
+        doc = CreateLatex()
+        doc.save_latex(beam_cover, {}, {}, report_path, "", "", "", "Beam Cover Plate Bolted")
 
-         It returns list of tuple which contains, tab name, input widget type of keys, keys whose values to be saved,
-
-         [(Tab Name, input widget type of keys, [List of keys to be saved])]
-
-         """
-        design_input = []
-
-        t2 = (KEY_DISP_BEAMSEC, TYPE_COMBOBOX, [KEY_SEC_MATERIAL])
-        design_input.append(t2)
-
-        t3 = ("Bolt", TYPE_COMBOBOX, [KEY_DP_BOLT_TYPE, KEY_DP_BOLT_HOLE_TYPE, KEY_DP_BOLT_SLIP_FACTOR])
-        design_input.append(t3)
-
-        t5 = ("Detailing", TYPE_COMBOBOX, [KEY_DP_DETAILING_EDGE_TYPE, KEY_DP_DETAILING_CORROSIVE_INFLUENCES])
-        design_input.append(t5)
-
-        t5 = ("Detailing", TYPE_TEXTBOX, [KEY_DP_DETAILING_GAP])
-        design_input.append(t5)
-
-        t6 = ("Design", TYPE_COMBOBOX, [KEY_DP_DESIGN_METHOD])
-        design_input.append(t6)
-
-        t7 = ("Connector", TYPE_COMBOBOX, [KEY_CONNECTOR_MATERIAL])
-        design_input.append(t7)
-
-        return design_input
-
-    def input_dictionary_without_design_pref(self):
-        """
-
-        :return: This function is used to choose values of design preferences to be saved to
-        design dictionary if design preference is never opened by user. It sets are design preference values to default.
-        If any design preference value needs to be set to input dock value, tuple shall be written as:
-
-        (Key of input dock, [List of Keys from design preference], 'Input Dock')
-
-        If the values needs to be set to default,
-
-        (None, [List of Design Preference Keys], '')
-
-         """
-        design_input = []
-        t1 = (KEY_MATERIAL, [KEY_SEC_MATERIAL], 'Input Dock')
-        design_input.append(t1)
-
-        t2 = (None, [KEY_DP_BOLT_TYPE, KEY_DP_BOLT_HOLE_TYPE, KEY_DP_BOLT_SLIP_FACTOR,
-                     KEY_DP_DETAILING_EDGE_TYPE, KEY_DP_DETAILING_GAP,
-                     KEY_DP_DETAILING_CORROSIVE_INFLUENCES, KEY_DP_DESIGN_METHOD, KEY_CONNECTOR_MATERIAL], '')
-        design_input.append(t2)
-
-        return design_input
-
-    def refresh_input_dock(self):
-
-        """
-
-        :return: This function returns list of tuples which has keys that needs to be updated,
-         on changing Keys in design preference (ex: adding a new section to database should reflect in input dock)
-
-         [(Tab Name,  Input Dock Key, Input Dock Key type, design preference key, Master key, Value, Database Table Name)]
-        """
-
-        add_buttons = []
-
-        t2 = (KEY_DISP_BEAMSEC, KEY_SECSIZE, TYPE_COMBOBOX, KEY_SECSIZE, None, None, "Beams")
-        add_buttons.append(t2)
-
-        return add_buttons
-
-    def get_values_for_design_pref(self, key, design_dictionary):
-
-        if design_dictionary[KEY_MATERIAL] != 'Select Material':
-            fu = Material(design_dictionary[KEY_MATERIAL],41).fu
-        else:
-            fu = ''
-
-        val = {KEY_DP_BOLT_TYPE: "Pretensioned",
-               KEY_DP_BOLT_HOLE_TYPE: "Standard",
-               KEY_DP_BOLT_SLIP_FACTOR: str(0.3),
-               KEY_DP_WELD_FAB: KEY_DP_FAB_SHOP,
-               KEY_DP_DETAILING_EDGE_TYPE: "Sheared or hand flame cut",
-               KEY_DP_DETAILING_GAP: '3',
-               KEY_DP_DETAILING_CORROSIVE_INFLUENCES: 'No',
-               KEY_DP_DESIGN_METHOD: "Limit State Design",
-               KEY_CONNECTOR_MATERIAL: str(design_dictionary[KEY_MATERIAL])
-               }[key]
-
-        return val
-    ####################################
-    # Design Preference Functions End
-    ####################################
+        return report_path
 
     def set_osdaglogger(key):
 
@@ -247,573 +101,52 @@ class BeamCoverPlate(MomentConnection):
         else:
             return False
 
-    def input_value_changed(self):
-
-        lst = []
-
-        t8 = ([KEY_MATERIAL], KEY_MATERIAL, TYPE_CUSTOM_MATERIAL, self.new_material)
-        lst.append(t8)
-
-        t8 = ([KEY_FLANGEPLATE_PREFERENCES], KEY_INNERFLANGE_PLATE_HEIGHT,TYPE_OUT_DOCK, self.preference_type)
-        lst.append(t8)
-        t8 = ([KEY_FLANGEPLATE_PREFERENCES], KEY_INNERFLANGE_PLATE_HEIGHT, TYPE_OUT_LABEL, self.preference_type)
-        lst.append(t8)
-
-        t8 = ([KEY_FLANGEPLATE_PREFERENCES], KEY_INNERFLANGE_PLATE_LENGTH, TYPE_OUT_DOCK, self.preference_type)
-        lst.append(t8)
-        t8 = ([KEY_FLANGEPLATE_PREFERENCES], KEY_INNERFLANGE_PLATE_LENGTH, TYPE_OUT_LABEL, self.preference_type)
-        lst.append(t8)
-
-        t8 = ([KEY_FLANGEPLATE_PREFERENCES], KEY_INNERFLANGEPLATE_THICKNESS, TYPE_OUT_DOCK, self.preference_type)
-        lst.append(t8)
-        t8 = ([KEY_FLANGEPLATE_PREFERENCES], KEY_INNERFLANGEPLATE_THICKNESS, TYPE_OUT_LABEL, self.preference_type)
-        lst.append(t8)
-
-
-        return lst
-
-    def input_values(self):
-
-        options_list = []
-
-        t16 = (KEY_MODULE, KEY_DISP_BEAMCOVERPLATE, TYPE_MODULE, None, True, 'No Validator')
-        options_list.append(t16)
-
-        t1 = (None, DISP_TITLE_CM, TYPE_TITLE, None, True, 'No Validator')
-        options_list.append(t1)
-
-        t4 = (KEY_SECSIZE, KEY_DISP_SECSIZE, TYPE_COMBOBOX, connectdb("Beams"), True, 'No Validator')
-        options_list.append(t4)
-
-        t5 = (KEY_MATERIAL, KEY_DISP_MATERIAL, TYPE_COMBOBOX, VALUES_MATERIAL, True, 'No Validator')
-        options_list.append(t5)
-
-        t6 = (None, DISP_TITLE_FSL, TYPE_TITLE, None, True, 'No Validator')
-        options_list.append(t6)
-
-        t17 = (KEY_MOMENT, KEY_DISP_MOMENT, TYPE_TEXTBOX, None, True, 'Int Validator')
-        options_list.append(t17)
-
-        t7 = (KEY_SHEAR, KEY_DISP_SHEAR, TYPE_TEXTBOX, None, True, 'Int Validator')
-        options_list.append(t7)
-
-        t8 = (KEY_AXIAL, KEY_DISP_AXIAL, TYPE_TEXTBOX, None, True, 'Int Validator')
-        options_list.append(t8)
-
-        t9 = (None, DISP_TITLE_BOLT, TYPE_TITLE, None, True, 'No Validator')
-        options_list.append(t9)
-
-        t10 = (KEY_D, KEY_DISP_D, TYPE_COMBOBOX_CUSTOMIZED, VALUES_D, True, 'No Validator')
-        options_list.append(t10)
-
-        t11 = (KEY_TYP, KEY_DISP_TYP, TYPE_COMBOBOX, VALUES_TYP, True, 'No Validator')
-        options_list.append(t11)
-
-        t12 = (KEY_GRD, KEY_DISP_GRD, TYPE_COMBOBOX_CUSTOMIZED, VALUES_GRD, True, 'No Validator')
-        options_list.append(t12)
-
-        t18 = (None, DISP_TITLE_FLANGESPLICEPLATE, TYPE_TITLE, None, True, 'No Validator')
-        options_list.append(t18)
-
-        t19 = (KEY_FLANGEPLATE_PREFERENCES, KEY_DISP_FLANGESPLATE_PREFERENCES, TYPE_COMBOBOX, VALUES_FLANGEPLATE_PREFERENCES, True, 'No Validator')
-        options_list.append(t19)
-
-        t20 = (KEY_FLANGEPLATE_THICKNESS, KEY_DISP_FLANGESPLATE_THICKNESS, TYPE_COMBOBOX_CUSTOMIZED, VALUES_FLANGEPLATE_THICKNESS, True, 'No Validator')
-        options_list.append(t20)
-
-        t21 = (None, DISP_TITLE_WEBSPLICEPLATE, TYPE_TITLE, None, True, 'No Validator')
-        options_list.append(t21)
-
-        t22 = (KEY_WEBPLATE_THICKNESS, KEY_DISP_WEBPLATE_THICKNESS, TYPE_COMBOBOX_CUSTOMIZED, VALUES_WEBPLATE_THICKNESS, True, 'No Validator')
-        options_list.append(t22)
-
-        return options_list
-
-    def customized_input(self):
-
-        list1 = []
-        t1 = (KEY_GRD, self.grdval_customized)
-        list1.append(t1)
-        t3 = (KEY_D, self.diam_bolt_customized)
-        list1.append(t3)
-        t4 = (KEY_WEBPLATE_THICKNESS, self.plate_thick_customized)
-        list1.append(t4)
-        t5 = (KEY_FLANGEPLATE_THICKNESS, self.plate_thick_customized)
-        list1.append(t5)
-
-        return list1
-
-    def flangespacing(self, flag):
-
-        flangespacing = []
-        t00 = (None, "", TYPE_NOTE, "Representative Image for Spacing Details - 3 x 3 pattern considered")
-        flangespacing.append(t00)
-
-        # t99 = (None, 'Spacing Details', TYPE_SECTION, './ResourceFiles/images/spacing_1.png')
-        # spacing.append(t99)
-
-        t99 = (None, 'Spacing Details', TYPE_SECTION,
-               [str(files("osdag.data.ResourceFiles.images").joinpath("spacing_1.png")), 400, 278, ""])  # [image, width, height, caption]
-        flangespacing.append(t99)
-        t21 = (KEY_FLANGE_PITCH, KEY_DISP_FLANGE_PLATE_PITCH, TYPE_TEXTBOX,
-               self.flange_plate.pitch_provided )
-        flangespacing.append(t21)
-
-        t22 = (KEY_ENDDIST_FLANGE, KEY_DISP_END_DIST_FLANGE, TYPE_TEXTBOX,
-               self.flange_plate.end_dist_provided)
-        flangespacing.append(t22)
-
-        t23 = (KEY_FLANGE_PLATE_GAUGE, KEY_DISP_FLANGE_PLATE_GAUGE, TYPE_TEXTBOX,
-               self.flange_plate.gauge_provided)
-        flangespacing.append(t23)
-
-        t24 = (KEY_EDGEDIST_FLANGE, KEY_DISP_EDGEDIST_FLANGE, TYPE_TEXTBOX,
-               self.flange_plate.edge_dist_provided )
-        flangespacing.append(t24)
-        return flangespacing
-    #
-    def webspacing(self, flag):
-
-        webspacing = []
-        t00 = (None, "", TYPE_NOTE, "Representative Image for Spacing Details - 3 x 3 pattern considered")
-        webspacing.append(t00)
-
-        # t99 = (None, 'Spacing Details', TYPE_SECTION, './ResourceFiles/images/spacing_1.png')
-        # spacing.append(t99)
-
-        t99 = (None, 'Spacing Details', TYPE_SECTION,
-               [str(files("osdag.data.ResourceFiles.images").joinpath("spacing_1.png")), 400, 278, ""])  # [image, width, height, caption]
-        webspacing.append(t99)
-
-        t8 = (KEY_WEB_PITCH, KEY_DISP_WEB_PLATE_PITCH, TYPE_TEXTBOX, self.web_plate.pitch_provided if flag else '')
-        webspacing.append(t8)
-
-        t9 = (KEY_ENDDIST_W, KEY_DISP_END_DIST_W, TYPE_TEXTBOX,
-            self.web_plate.end_dist_provided if flag else '')
-        webspacing.append(t9)
-
-        t10 = ( KEY_WEB_GAUGE, KEY_DISP_WEB_PLATE_GAUGE, TYPE_TEXTBOX, self.web_plate.gauge_provided if flag else '')
-        webspacing.append(t10)
-
-        t11 = (KEY_EDGEDIST_W, KEY_DISP_EDGEDIST_W, TYPE_TEXTBOX,
-               self.web_plate.edge_dist_provided if flag else '')
-        webspacing.append(t11)
-        return webspacing
-    #
-    def flangecapacity(self, flag):
-
-        flangecapacity = []
-        t00 = (None, "", TYPE_NOTE, "Representative image for Failure Pattern (Half Plate)- 2 x 3 Bolts pattern considered")
-        flangecapacity.append(t00)
-
-        # t99 = (None, 'Failure Pattern due to Tension in Member', TYPE_SECTION,
-        #        ['./ResourceFiles/images/L.png', 400, 202, "Block Shear Pattern"])  # [image, width, height, caption]
-        # flangecapacity.append(t99)
-        t99 = (None, 'Failure Pattern due to Tension in Plate and Member', TYPE_SECTION,
-               [str(files("osdag.data.ResourceFiles.images").joinpath("2L.png")), 400, 202, "Block Shear Pattern"])  # [image, width, height, caption]
-        flangecapacity.append(t99)
-        t30 =(KEY_FLANGE_TEN_CAPACITY,KEY_DISP_FLANGE_TEN_CAPACITY,TYPE_TEXTBOX,
-               round(self.section.tension_capacity_flange/1000, 2) if flag else '')
-        flangecapacity.append(t30)
-
-        t30 = (KEY_FLANGE_PLATE_TEN_CAP, KEY_DISP_FLANGE_PLATE_TEN_CAP, TYPE_TEXTBOX,
-               round(self.flange_plate.tension_capacity_flange_plate / 1000, 2) if flag else '')
-        flangecapacity.append(t30)
-
-        # t28 = (KEY_FLANGE_PLATE_MOM_DEMAND, KEY_FLANGE_DISP_PLATE_MOM_DEMAND, TYPE_TEXTBOX,
-        #        round(self.flange_plate.moment_demand / 1000000, 2) if flag else '')
-        # flangecapacity.append(t28)
-        #
-        # t29 = (KEY_FLANGE_PLATE_MOM_CAPACITY, KEY_FLANGE_DISP_PLATE_MOM_CAPACITY, TYPE_TEXTBOX,
-        #        round(self.flange_plate.moment_capacity/1000, 2) if flag else '')
-        # flangecapacity.append( t29)
-
-        return flangecapacity
-
-    def webcapacity(self, flag):
-        webcapacity = []
-        t00 = (None, "", TYPE_NOTE, "Representative image for Failure Pattern (Half Plate)- 2 x 3 Bolts pattern considered")
-        webcapacity.append(t00)
-
-        t99 = (None, 'Failure Pattern due to tension in Member and Plate', TYPE_SECTION,
-               [str(files("osdag.data.ResourceFiles.images").joinpath("U.png")), 400, 202, "Block Shear Pattern"])  # [image, width, height, caption]
-        webcapacity.append(t99)
-
-        t30 = (KEY_WEB_TEN_CAPACITY, KEY_DISP_WEB_TEN_CAPACITY, TYPE_TEXTBOX,
-               round(self.section.tension_capacity_web / 1000, 2) if flag else '')
-        webcapacity.append(t30)
-
-        # t99 = (None, 'Failure Pattern due to Tension in Plate', TYPE_SECTION,
-        #        ['./ResourceFiles/images/U.png', 400, 202, "Block Shear Pattern"])  # [image, width, height, caption]
-        # webcapacity.append(t99)
-
-        t30 = (KEY_WEB_PLATE_CAPACITY, KEY_DISP_WEB_PLATE_CAPACITY, TYPE_TEXTBOX,
-               round(self.web_plate.tension_capacity_web_plate/ 1000, 2) if flag else '')
-        webcapacity.append(t30)
-
-        t99 = (None, 'Failure Pattern due to Shear in Plate', TYPE_SECTION,
-               [str(files("osdag.data.ResourceFiles.images").joinpath("L_shear.png")), 400, 210, "Block Shear Pattern"])  # [image, width, height, caption]
-        webcapacity.append(t99)
-
-        t30 = (KEY_WEBPLATE_SHEAR_CAPACITY_PLATE, KEY_DISP_WEBPLATE_SHEAR_CAPACITY_PLATE, TYPE_TEXTBOX,
-               round(self.web_plate.shear_capacity_web_plate / 1000, 2) if flag else '')
-        webcapacity.append(t30)
-        #
-        t15 = (KEY_WEB_PLATE_MOM_DEMAND, KEY_WEB_DISP_PLATE_MOM_DEMAND, TYPE_TEXTBOX,
-               round(self.web_plate.moment_demand / 1000000, 2) if flag else '')
-        webcapacity.append(t15)
-        #
-        # t16 = (KEY_WEB_PLATE_MOM_CAPACITY, KEY_WEB_DISP_PLATE_MOM_CAPACITY, TYPE_TEXTBOX,
-        #        round(self.web_plate.moment_capacity/1000, 2) if flag else '')
-        # webcapacity.append(t16)
-        return webcapacity
-
-
-
-    def member_capacityoutput(self,flag):
-        member_capacityoutput = []
-        t29 = (KEY_MEMBER_MOM_CAPACITY, KEY_OUT_DISP_MOMENT_CAPACITY, TYPE_TEXTBOX,
-               round(self.section.moment_capacity  / 1000000, 2) if flag else '')
-        member_capacityoutput.append(t29)
-        t29 = (KEY_MEMBER_SHEAR_CAPACITY, KEY_OUT_DISP_SHEAR_CAPACITY, TYPE_TEXTBOX,
-               round(self.shear_capacity1 / 1000, 2) if flag else '')
-        member_capacityoutput.append(t29)
-        t29 = (KEY_MEMBER_AXIALCAPACITY, KEY_OUT_DISP_AXIAL_CAPACITY, TYPE_TEXTBOX,
-               round(self.axial_capacity/ 1000, 2) if flag else '')
-        member_capacityoutput.append(t29)
-        return member_capacityoutput
-
-    def flange_bolt_capacity(self,flag):
-        flange_bolt_capacity =[]
-
-        # t99 = (None, None, TYPE_SECTION, './ResourceFiles/images/beam_spacing_flange_bolted.png')
-        # flange_bolt_capacity.append(t99)
-        t16 = (KEY_FLANGE_BOLT_LINE, KEY_FLANGE_DISP_BOLT_LINE, TYPE_TEXTBOX,
-               (self.flange_plate.bolt_line) if flag else '')
-        flange_bolt_capacity.append(t16)
-
-        t16 = (KEY_FLANGE_BOLTS_ONE_LINE, KEY_FLANGE_DISP_BOLTS_ONE_LINE, TYPE_TEXTBOX,
-               (self.flange_plate.bolts_one_line) if flag else '')
-        flange_bolt_capacity.append(t16)
-
-        t16 = (KEY_FLANGE_BOLTS_REQ, KEY_FLANGE_DISP_BOLTS_REQ, TYPE_TEXTBOX,
-               (self.flange_plate.bolts_required) if flag else '')
-        flange_bolt_capacity.append(t16)
-
-        t11 = (KEY_OUT_BOLT_SHEAR, KEY_OUT_DISP_BOLT_SHEAR, TYPE_TEXTBOX,
-               round(self.flange_bolt.bolt_shear_capacity / 1000, 2) if flag else '', True)
-        flange_bolt_capacity.append(t11)
-
-        bolt_bearing_capacity_disp = ''
-        if flag is True:
-            if self.flange_bolt.bolt_bearing_capacity is not VALUE_NOT_APPLICABLE:
-                bolt_bearing_capacity_disp = round(self.flange_bolt.bolt_bearing_capacity / 1000, 2)
-                pass
-            else:
-                bolt_bearing_capacity_disp = self.flange_bolt.bolt_bearing_capacity
-
-        t5 = (
-        KEY_OUT_BOLT_BEARING, KEY_OUT_DISP_BOLT_BEARING, TYPE_TEXTBOX, bolt_bearing_capacity_disp if flag else '', True)
-        flange_bolt_capacity.append(t5)
-        if self.flange_plate.beta_lj > 0:
-            self.flange_plate.beta_lj = round(self.flange_plate.beta_lj, 2)
-        else:
-            self.flange_plate.beta_lj = 1
-
-        t5 = (KEY_REDUCTION_LARGE_GRIP_FLANGE, KEY_DISP_REDUCTION_LARGE_GRIP_FLANGE, TYPE_TEXTBOX,
-              round(self.flange_plate.beta_lg, 2) if flag else '', True)
-        flange_bolt_capacity.append(t5)
-        t5 = (KEY_REDUCTION_FACTOR_LONG_FLANGE, KEY_DISP_REDUCTION_FACTOR_FLANGE, TYPE_TEXTBOX,
-              round(self.flange_plate.beta_lj, 2) if flag else '', True)
-        flange_bolt_capacity.append(t5)
-        t13 = (KEY_OUT_BOLT_CAPACITY, KEY_OUT_DISP_BOLT_CAPACITY, TYPE_TEXTBOX,
-               round(self.flange_plate.bolt_capacity_red / 1000, 2) if flag else '', True)
-        flange_bolt_capacity.append(t13)
-
-        t14 = (KEY_OUT_BOLT_FORCE, KEY_OUT_DISP_BOLT_FORCE, TYPE_TEXTBOX,
-               round(self.flange_plate.bolt_force / 1000, 2) if flag else '', True)
-        flange_bolt_capacity.append(t14)
-        return flange_bolt_capacity
-
-
-    def web_bolt_capacity(self,flag):
-        web_bolt_capacity =[]
-        # t99 = (None, None, TYPE_SECTION, './ResourceFiles/images/beam_spacing_web_bolted.png')
-        # web_bolt_capacity.append(t99)
-        t16 = (KEY_WEB_BOLT_LINE, KEY_WEB_DISP_BOLT_LINE, TYPE_TEXTBOX,
-               (self.web_plate.bolt_line) if flag else '')
-        web_bolt_capacity.append(t16)
-
-
-        t16 = (KEY_WEB_BOLTS_ONE_LINE, KEY_WEB_DISP_BOLTS_ONE_LINE, TYPE_TEXTBOX,
-               (self.web_plate.bolts_one_line) if flag else '')
-        web_bolt_capacity.append(t16)
-
-        t16 = (KEY_WEB_BOLTS_REQ , KEY_WEB_DISP_BOLTS_REQ, TYPE_TEXTBOX,
-               (self.web_plate.bolts_required) if flag else '')
-        web_bolt_capacity.append(t16)
-        t11 = (KEY_OUT_BOLT_SHEAR, KEY_OUT_DISP_BOLT_SHEAR, TYPE_TEXTBOX,
-               round(self.web_bolt.bolt_shear_capacity / 1000, 2) if flag else '', True)
-        web_bolt_capacity.append(t11)
-
-        webbolt_bearing_capacity_disp = ''
-        if flag is True:
-            if self.web_bolt.bolt_bearing_capacity is not VALUE_NOT_APPLICABLE:
-                webbolt_bearing_capacity_disp = round(self.web_bolt.bolt_bearing_capacity / 1000, 2)
-                pass
-            else:
-                webbolt_bearing_capacity_disp = self.web_bolt.bolt_bearing_capacity
-
-        t5 = (KEY_OUT_BOLT_BEARING, KEY_OUT_DISP_BOLT_BEARING, TYPE_TEXTBOX, webbolt_bearing_capacity_disp if flag else '',
-            True)
-        web_bolt_capacity.append(t5)
-        if self.web_plate.beta_lj > 0:
-            self.web_plate.beta_lj =round(self.web_plate.beta_lj, 2)
-        else:
-            self.web_plate.beta_lj = 1
-
-
-        t5 = (KEY_REDUCTION_FACTOR_WEB, KEY_DISP_REDUCTION_FACTOR_WEB, TYPE_TEXTBOX,
-              round(self.web_plate.beta_lj, 2) if flag else '', True)
-        web_bolt_capacity.append(t5)
-
-        t13 = (KEY_OUT_BOLT_CAPACITY, KEY_OUT_DISP_BOLT_CAPACITY, TYPE_TEXTBOX,
-               round(self.web_plate.bolt_capacity_red / 1000, 2) if flag else '', True)
-        web_bolt_capacity.append(t13)
-
-        t14 = (KEY_OUT_BOLT_FORCE, KEY_OUT_DISP_BOLT_FORCE, TYPE_TEXTBOX,
-               round(self.web_plate.bolt_force / 1000, 2) if flag else '', True)
-        web_bolt_capacity.append(t14)
-        return web_bolt_capacity
-    def output_values(self, flag):
-        """
-        Args:
-        for flange plate:
-            key height is assigned as width
-            key Length: length
-        for web plate:
-            key length is assigned as width
-            key height: height
-        Returns:
-        """
-
-        out_list = []
-        t4 = (None, DISP_TITLE_MEMBER_CAPACITY, TYPE_TITLE, None, True)
-        out_list.append(t4)
-        t21 = (
-        KEY_MEMBER_CAPACITY, KEY_DISP_MEMBER_CAPACITY, TYPE_OUT_BUTTON, ['Member Capacity', self.member_capacityoutput],
-        True)
-        out_list.append(t21)
-        t1 = (None, DISP_TITLE_BOLT, TYPE_TITLE, None, True)
-        out_list.append(t1)
-
-        t2 = (KEY_OUT_D_PROVIDED, KEY_OUT_DISP_D_PROVIDED, TYPE_TEXTBOX,
-              int(self.bolt.bolt_diameter_provided) if flag else '', True)
-        out_list.append(t2)
-
-        t3 = (KEY_OUT_GRD_PROVIDED, KEY_DISP_GRD, TYPE_TEXTBOX,
-              self.bolt.bolt_grade_provided if flag else '', True)
-        out_list.append(t3)
-
-        t8 = (None, DISP_TITLE_BOLT_CAPACITIES, TYPE_TITLE, None, True)
-        out_list.append(t8)
-
-        t21 = (KEY_BOLT_CAPACITIES , DISP_TITLE_BOLT_CAPACITY_FLANGE, TYPE_OUT_BUTTON, ['Flange Bolt Capacity', self.flange_bolt_capacity], True)
-        out_list.append(t21)
-        t21 = (KEY_BOLT_CAPACITIES_WEB, DISP_TITLE_BOLT_CAPACITY_WEB, TYPE_OUT_BUTTON,
-               ['Web Bolt Capacity', self.web_bolt_capacity], True)
-        out_list.append(t21)
-        # t4 = (None, DISP_TITLE_MEMBER_CAPACITY, TYPE_TITLE, None, True)
-        # out_list.append(t4)
-
-
-        t4 = (None, DISP_TITLE_WEBSPLICEPLATE, TYPE_TITLE, None, True)
-        out_list.append(t4)
-
-        t5 = (KEY_WEB_PLATE_HEIGHT, KEY_DISP_WEB_PLATE_HEIGHT, TYPE_TEXTBOX,
-              self.web_plate.height if flag else '', True)
-        out_list.append(t5)
-
-        t6 = (KEY_WEB_PLATE_LENGTH, KEY_DISP_WEB_PLATE_LENGTH, TYPE_TEXTBOX,
-              self.web_plate.length if flag else '', True)
-        out_list.append(t6)
-
-        t7 = (KEY_OUT_WEBPLATE_THICKNESS, KEY_DISP_WEBPLATE_THICKNESS, TYPE_TEXTBOX,
-              self.web_plate.thickness_provided if flag else '', True)
-        out_list.append(t7)
-
-        t21 = (KEY_WEB_SPACING, KEY_DISP_WEB_SPACING, TYPE_OUT_BUTTON, ['Web Spacing Details', self.webspacing], True)
-        out_list.append(t21)
-
-        t21 = (KEY_WEB_CAPACITY, KEY_DISP_WEB_CAPACITY, TYPE_OUT_BUTTON, ['Web Capacity', self.webcapacity], True)
-        out_list.append(t21)
-
-        t17 = (None, DISP_TITLE_FLANGESPLICEPLATE, TYPE_TITLE, None, True)
-        out_list.append(t17)
-        t17 = (None, DISP_TITLE_FLANGESPLICEPLATE_OUTER, TYPE_TITLE, None, True)
-        out_list.append(t17)
-        t18 = (KEY_FLANGE_PLATE_HEIGHT, KEY_DISP_FLANGE_PLATE_HEIGHT, TYPE_TEXTBOX,
-               self.flange_plate.height if flag else '', True)
-        out_list.append(t18)
-
-        t19 = ( KEY_FLANGE_PLATE_LENGTH, KEY_DISP_FLANGE_PLATE_LENGTH, TYPE_TEXTBOX,
-            self.plate_out_len if flag else '', True)
-        out_list.append(t19)
-
-        t20 = (KEY_FLANGEPLATE_THICKNESS, KEY_DISP_FLANGESPLATE_THICKNESS, TYPE_TEXTBOX,
-               self.flange_out_plate_tk if flag else '', True)
-        out_list.append(t20)
-        t21 = (KEY_FLANGE_SPACING, KEY_DISP_FLANGE_SPACING, TYPE_OUT_BUTTON, ['Flange Spacing Details', self.flangespacing], True)
-        out_list.append(t21)
-
-        t21 = (KEY_FLANGE_CAPACITY, KEY_DISP_FLANGE_CAPACITY, TYPE_OUT_BUTTON, ['Flange Capacity', self.flangecapacity], True)
-        out_list.append(t21)
-
-
-        t17 = (None, DISP_TITLE_FLANGESPLICEPLATE_INNER, TYPE_TITLE, None, False)
-        out_list.append(t17)
-        t18 = (KEY_INNERFLANGE_PLATE_HEIGHT, KEY_DISP_INNERFLANGE_PLATE_HEIGHT, TYPE_TEXTBOX,
-               self.flange_plate.Innerheight if flag else '', False)
-        out_list.append(t18)
-
-        t19 = (KEY_INNERFLANGE_PLATE_LENGTH, KEY_DISP_INNERFLANGE_PLATE_LENGTH, TYPE_TEXTBOX,
-             self.plate_in_len if flag else '', False)
-        out_list.append(t19)
-        # if flag is True:
-        t20 = (KEY_INNERFLANGEPLATE_THICKNESS, KEY_DISP_INNERFLANGESPLATE_THICKNESS, TYPE_TEXTBOX,
-               self.flange_in_plate_tk if flag else '', False)
-        out_list.append(t20)
-
-
-        # t21 = (KEY_FLANGE_SPACING, KEY_DISP_FLANGE_SPACING, TYPE_OUT_BUTTON, ['Flange Spacing Details', self.flangespacing],
-
-        # t21 = (
-        # KEY_FLANGE_SPACING, KEY_DISP_FLANGE_SPACING, TYPE_OUT_BUTTON, ['Flange Spacing Details', self.flangespacing],
-
-        # True)
-        # out_list.append(t21)
-        #
-        # t21 = (
-        # KEY_FLANGE_CAPACITY, KEY_DISP_FLANGE_CAPACITY, TYPE_OUT_BUTTON, ['Flange Capacity', self.flangecapacity], True)
-        # out_list.append(t21)
-
-                # pass
-            # else:
-            #     t17 = (None, DISP_TITLE_FLANGESPLICEPLATE_INNER, TYPE_TITLE, None, False)
-            #     out_list.append(t17)
-            #     t18 = (KEY_INNERFLANGE_PLATE_HEIGHT, KEY_DISP_INNERFLANGE_PLATE_HEIGHT, TYPE_TEXTBOX,
-            #            self.flange_plate.Innerheight if flag else '', False)
-            #     out_list.append(t18)
-
-        #         t19 = (KEY_INNERFLANGE_PLATE_LENGTH, KEY_DISP_INNERFLANGE_PLATE_LENGTH, TYPE_TEXTBOX,
-        #                self.flange_plate.Innerlength if flag else '', False)
-        #         out_list.append(t19)
-        #
-        #         t20 = (KEY_INNERFLANGEPLATE_THICKNESS, KEY_DISP_INNERFLANGESPLATE_THICKNESS, TYPE_TEXTBOX,
-        #                self.flange_plate.thickness_provided if flag else '', False)
-        #         out_list.append(t20)
-        #
-        # t17 = (None, DISP_TITLE_FLANGESPLICEPLATE_INNER, TYPE_TITLE, None, False)
-        # out_list.append(t17)
-        # t18 = (KEY_INNERFLANGE_PLATE_HEIGHT, KEY_DISP_INNERFLANGE_PLATE_HEIGHT, TYPE_TEXTBOX,
-        #        self.flange_plate.Innerheight if flag else '', False)
-        # out_list.append(t18)
-        #
-        # t19 = (KEY_INNERFLANGE_PLATE_LENGTH, KEY_DISP_INNERFLANGE_PLATE_LENGTH, TYPE_TEXTBOX,
-        #        self.flange_plate.Innerlength if flag else '', False)
-        # out_list.append(t19)
-        #
-        # t20 = (KEY_INNERFLANGEPLATE_THICKNESS, KEY_DISP_INNERFLANGESPLATE_THICKNESS, TYPE_TEXTBOX,
-        #        self.flange_plate.thickness_provided if flag else '', False)
-        # out_list.append(t20)
-
-
-
-
-
-
-
-
-
-        # t17 = (None, DISP_TITLE_FLANGESPLICEPLATE_INNER, TYPE_TITLE, None, True)
-        # out_list.append(t17)
-        # t18 = (KEY_INNERFLANGE_PLATE_HEIGHT, KEY_DISP_INNERFLANGE_PLATE_HEIGHT, TYPE_TEXTBOX,
-        #        self.flange_plate.Innerheight if flag else '',True)
-        # out_list.append(t18)
-        #
-        # t19 = (KEY_INNERFLANGE_PLATE_LENGTH, KEY_DISP_INNERFLANGE_PLATE_LENGTH, TYPE_TEXTBOX,
-        #        self.flange_plate.Innerlength if flag else '',True)
-        # out_list.append(t19)
-        #
-        # t20 = (KEY_INNERFLANGEPLATE_THICKNESS, KEY_DISP_INNERFLANGESPLATE_THICKNESS, TYPE_TEXTBOX,
-        #        self.flange_plate.thickness_provided if flag else '',True)
-        # out_list.append(t20)
-
-
-        return out_list
-
-    def warn_text(self):
-
-        """
-        Function to give logger warning when any old value is selected from Column and Beams table.
-        """
-
-        # @author Arsil Zunzunia
-        global logger
-        red_list = red_list_function()
-        if self.section.designation in red_list or self.section.designation in red_list:
-            logger.warning(
-                " : You are using a section (in red color) that is not available in latest version of IS 808")
-            logger.info(
-                " : You are using a section (in red color) that is not available in latest version of IS 808")
-
-
-    def module_name(self):
-        return KEY_DISP_BEAMCOVERPLATE
-
     def set_input_values(self, design_dictionary):
-        super(BeamCoverPlate, self).set_input_values(self, design_dictionary)
+        super().set_input_values(design_dictionary)
 
-        self.module = design_dictionary[KEY_MODULE]
-        # self.connectivity = design_dictionary[KEY_CONN]
-        self.preference = design_dictionary[KEY_FLANGEPLATE_PREFERENCES]
-        self.material = design_dictionary[KEY_MATERIAL]
+        self.module = design_dictionary.get("Module", "Moment Connection")  # Default value
+        self.preference = design_dictionary.get("FlangePlatePreferences", {})  # Empty dict as default
+        self.material = design_dictionary.get("Material", "Steel")  # Default material
 
         self.section = Beam(designation=design_dictionary[KEY_SECSIZE],
                               material_grade=design_dictionary[KEY_SEC_MATERIAL])
-        print("anjali",design_dictionary[KEY_DP_DETAILING_EDGE_TYPE])
-        self.web_bolt = Bolt(grade=design_dictionary[KEY_GRD], diameter=design_dictionary[KEY_D],
-                             bolt_type=design_dictionary[KEY_TYP],
-                             bolt_hole_type=design_dictionary[KEY_DP_BOLT_HOLE_TYPE],
-                             edge_type=design_dictionary[KEY_DP_DETAILING_EDGE_TYPE],
-                             mu_f=design_dictionary[KEY_DP_BOLT_SLIP_FACTOR],
-                             corrosive_influences=design_dictionary[KEY_DP_DETAILING_CORROSIVE_INFLUENCES],
-                             bolt_tensioning=design_dictionary[KEY_DP_BOLT_TYPE])
+        
+        self.web_bolt = Bolt(grade=design_dictionary[KEY_GRD], 
+                             diameter=design_dictionary[KEY_D],
+                             bolt_type=design_dictionary[KEY_TYP])
+                            #  bolt_hole_type=design_dictionary[KEY_DP_BOLT_HOLE_TYPE],
+                            #  edge_type=design_dictionary[KEY_DP_DETAILING_EDGE_TYPE],
+                            #  mu_f=design_dictionary[KEY_DP_BOLT_SLIP_FACTOR],
+                            #  corrosive_influences=design_dictionary[KEY_DP_DETAILING_CORROSIVE_INFLUENCES],
+                            #  bolt_tensioning=design_dictionary[KEY_DP_BOLT_TYPE])
 
 
-        self.bolt = Bolt(grade=design_dictionary[KEY_GRD], diameter=design_dictionary[KEY_D],
-                             bolt_type=design_dictionary[KEY_TYP],
-                             bolt_hole_type=design_dictionary[KEY_DP_BOLT_HOLE_TYPE],
-                             edge_type=design_dictionary[KEY_DP_DETAILING_EDGE_TYPE],
-                             mu_f=design_dictionary[KEY_DP_BOLT_SLIP_FACTOR],
-                             corrosive_influences=design_dictionary[KEY_DP_DETAILING_CORROSIVE_INFLUENCES],
-                         bolt_tensioning=design_dictionary[KEY_DP_BOLT_TYPE])
-        self.flange_bolt = Bolt(grade=design_dictionary[KEY_GRD], diameter=design_dictionary[KEY_D],
-                                bolt_type=design_dictionary[KEY_TYP],
-                                bolt_hole_type=design_dictionary[KEY_DP_BOLT_HOLE_TYPE],
-                                edge_type=design_dictionary[KEY_DP_DETAILING_EDGE_TYPE],
-                                mu_f=design_dictionary[KEY_DP_BOLT_SLIP_FACTOR],
-                                corrosive_influences=design_dictionary[KEY_DP_DETAILING_CORROSIVE_INFLUENCES],
-                                bolt_tensioning=design_dictionary[KEY_DP_BOLT_TYPE])
+        self.bolt = Bolt(grade=design_dictionary[KEY_GRD], 
+                         diameter=design_dictionary[KEY_D],
+                             bolt_type=design_dictionary[KEY_TYP]),
+                        #      bolt_hole_type=design_dictionary[KEY_DP_BOLT_HOLE_TYPE],
+                        #      edge_type=design_dictionary[KEY_DP_DETAILING_EDGE_TYPE],
+                        #      mu_f=design_dictionary[KEY_DP_BOLT_SLIP_FACTOR],
+                        #      corrosive_influences=design_dictionary[KEY_DP_DETAILING_CORROSIVE_INFLUENCES],
+                        #  bolt_tensioning=design_dictionary[KEY_DP_BOLT_TYPE])
+        self.flange_bolt = Bolt(grade=design_dictionary[KEY_GRD], 
+                                diameter=design_dictionary[KEY_D],
+                                bolt_type=design_dictionary[KEY_TYP]),
+                                # bolt_hole_type=design_dictionary[KEY_DP_BOLT_HOLE_TYPE],
+                                # edge_type=design_dictionary[KEY_DP_DETAILING_EDGE_TYPE],
+                                # mu_f=design_dictionary[KEY_DP_BOLT_SLIP_FACTOR],
+                                # corrosive_influences=design_dictionary[KEY_DP_DETAILING_CORROSIVE_INFLUENCES],
+                                # bolt_tensioning=design_dictionary[KEY_DP_BOLT_TYPE])
 
-        self.flange_plate = Plate(thickness=design_dictionary.get(KEY_FLANGEPLATE_THICKNESS, None),
+        self.flange_plate = Plate(thickness=design_dictionary.get(KEY_FLANGEPLATE_THICKNESS, 6),
                                   material_grade=design_dictionary[KEY_CONNECTOR_MATERIAL],
-                                  gap=design_dictionary[KEY_DP_DETAILING_GAP])
+                                  gap=design_dictionary.get(KEY_DP_DETAILING_GAP, 3)
+                                )
 
 
         self.web_plate = Plate(thickness=design_dictionary.get(KEY_WEBPLATE_THICKNESS, None),
-                               material_grade=design_dictionary[KEY_CONNECTOR_MATERIAL],
-                               gap=design_dictionary[KEY_DP_DETAILING_GAP])
+                               material_grade=design_dictionary[KEY_CONNECTOR_MATERIAL]),
+                            #    gap=design_dictionary[KEY_DP_DETAILING_GAP])
 
         # self.flange_check_thk =[]
         # self.web_check_thk = []
@@ -830,8 +163,7 @@ class BeamCoverPlate(MomentConnection):
         self.web_axial_check_status = False
         self.web_plate_axial_check_status = False
         self.web_shear_plate_check_status = False
-        self.warn_text(self)
-        self.member_capacity(self)
+        self.member_capacity()
         #self.hard_values(self)
     def hard_values(self):
         # Select Selection  WPB 240* 240 * 60.3 (inside Ouside)- material E 250 fe 450A bearing
@@ -924,177 +256,94 @@ class BeamCoverPlate(MomentConnection):
 
     def member_capacity(self):
         """
-        Axial capacity: [Ref: cl.10.7 IS 800:2007]
-        Moment capacity: [Ref: cl.10.7. IS 800:2007]
-        Shear capacity: [Ref: cl.8.4 IS 800:2007]
-        Limit width thickness ratio: [Ref: Table 2, cl. 3.7.2 and 3.7.4 IS 800:2007]
-        Returns:
+        Calculates:
+        - Axial Capacity [Ref: Cl.10.7 IS 800:2007]
+        - Shear Capacity [Ref: Cl.8.4 IS 800:2007]
+        - Moment Capacity [Ref: Cl.10.7 IS 800:2007]
 
+        Returns: Design Status (Safe/Unsafe)
         """
-        self.member_capacity_status = False
-        if self.section.type == "Rolled":
-            length = self.section.depth
-        else:
-            length = self.section.depth - (
-                    2 * self.section.flange_thickness)  # -(2*self.supported_section.root_radius)
+        self.member_capacity_status = False  # Default design status
+
+        # Prevent crash if section is not assigned
+        if not hasattr(self, "section") or self.section is None:
+            logger.error("No section data found. Ensure beam section is initialized.")
+            return
+
         gamma_m0 = 1.1
 
-        ############################# Axial Capacity N ############################
-        self.axial_capacity = round((self.section.area * self.section.fy) / gamma_m0, 2)  # N
-        self.axial_load_sec_class = round(max(min(self.load.axial_force * 1000, self.axial_capacity), 0.3 * self.axial_capacity), 2)  # N
-
-        # print("self.factored_axial_load", self.factored_axial_load)
-
-        ############################# Shear Capacity  # N############################
-        # TODO: Review by anjali. limit shear capacity to 0.6 times
-
-        self.shear_capacity1 = round(((self.section.depth - (2 * self.section.flange_thickness)) *
-                                      self.section.web_thickness * self.section.fy * 0.6) / (
-                                                 math.sqrt(3) * gamma_m0),
-                                     2)  # N # A_v: Total cross sectional area in shear in mm^2 (float)
-        # TODO: check with sourabh if minimum shear load is min(0.15Vd,40kN)
-        self.shear_load1 = min(0.15 * self.shear_capacity1 / 0.6, 40000.0)  # N
-        # print('shear_force', self.load.shear_force)
-
-        # #############################################################
-        # TODO: to be reviewed by anjali. web section modulus is renamed as Z_wp,Z_we instead of Z_p,Z_e
-        self.Z_wp = round(((self.section.web_thickness * (
-                self.section.depth - 2 * (self.section.flange_thickness)) ** 2) / 4), 2)  # mm3
-        self.Z_we = round(((self.section.web_thickness * (
-                self.section.depth - 2 * (self.section.flange_thickness)) ** 2) / 6), 2)  # mm3
-
-        # TODO: To be reviewed by anjali. section modulus is saved in Z_p,Z_e
-        self.Z_p = self.section.plast_sec_mod_z
-        self.Z_e = self.section.elast_sec_mod_z
-
-        if self.section.type == "Rolled":
-            self.limitwidththkratio_flange = self.limiting_width_thk_ratio(column_f_t=self.section.flange_thickness,
-                                                                           column_t_w=self.section.web_thickness,
-                                                                           D=self.section.depth,
-                                                                           column_b=self.section.flange_width,
-                                                                           column_fy=self.section.fy,
-                                                                           factored_axial_force=self.axial_load_sec_class,
-                                                                           column_area=self.section.area,
-                                                                           compression_element="External",
-                                                                           section="Rolled")
+        # Axial Capacity (N)
+        if hasattr(self.section, "area") and hasattr(self.section, "fy"):
+            self.axial_capacity = round((self.section.area * self.section.fy) / gamma_m0, 2)
         else:
-            pass
+            self.axial_capacity = 0  # Default to zero if missing
 
-        if self.section.type2 == "generally":
-            self.limitwidththkratio_web = self.limiting_width_thk_ratio(column_f_t=self.section.flange_thickness,
-                                                                        column_t_w=self.section.web_thickness,
-                                                                        D=self.section.depth,
-                                                                        column_b=self.section.flange_width,
-                                                                        column_fy=self.section.fy,
-                                                                        factored_axial_force=self.axial_load_sec_class,
-                                                                        column_area=self.section.area,
-                                                                        compression_element="Web of an I-H",
-                                                                        section="generally")
+        # Shear Capacity (N)
+        if hasattr(self.section, "depth") and hasattr(self.section, "flange_thickness") and hasattr(self.section, "web_thickness"):
+            self.shear_capacity1 = round(
+                ((self.section.depth - (2 * self.section.flange_thickness)) *
+                self.section.web_thickness * self.section.fy * 0.6) /
+                (math.sqrt(3) * gamma_m0), 2
+            )
         else:
-            pass
+            self.shear_capacity1 = 0  # Default to zero if missing
 
-        self.class_of_section = int(max(self.limitwidththkratio_flange, self.limitwidththkratio_web))
-        # TODO:Review by anjali. initally Z_w = Z_p and Z_e now changed to Z_wp and Z_we
-        if self.class_of_section == 1 or self.class_of_section == 2:
-            self.Z_w = self.Z_wp
-        elif self.class_of_section == 3:
-            self.Z_w = self.Z_we
+        # Section Modulus Calculations (Preventing Errors)
+        self.Z_p = getattr(self.section, "plast_sec_mod_z", 0)
+        self.Z_e = getattr(self.section, "elast_sec_mod_z", 0)
 
-        if self.class_of_section == 1 or self.class_of_section == 2:
-            self.beta_b = 1
-        elif self.class_of_section == 3:
-            self.beta_b = self.Z_e / self.Z_p
-        ############################ moment_capacty ############################
-
-        self.section.plastic_moment_capacty(beta_b=self.beta_b, Z_p=self.section.plast_sec_mod_z,
-                                            fy=self.section.fy)  # N-mm # for section
-
-        self.section.moment_d_deformation_criteria(fy=self.section.fy, Z_e=self.section.elast_sec_mod_z)
-        self.Pmc = self.section.plastic_moment_capactiy  # N-mm
-        self.Mdc = self.section.moment_d_def_criteria  # N-mm
-        self.section.moment_capacity = round(
-            min(self.section.plastic_moment_capactiy, self.section.moment_d_def_criteria), 2)  # N-mm
-        ###############################################################################
-        # Todo:Interaction Ratio
-        ##############################################################################
-        self.IR_axial = round(self.load.axial_force * 1000 / self.axial_capacity,4)
-        self.IR_shear = round(self.load.shear_force * 1000 / self.shear_capacity1,4)
-        self.IR_moment = round(self.load.moment * 1000000 / self.section.moment_capacity,4)
-        self.sum_IR = round(self.IR_axial + self.IR_moment,4)
-        if self.IR_axial < 0.3 and self.IR_moment < 0.5:
-            self.min_axial_load = 0.3 * self.axial_capacity
-            self.load_moment_min = 0.5 * self.section.moment_capacity
-            logger.info("The Load(s) defined is/are less than the minimum recommended value [Ref. IS 800:2007, Cl.10.7].")
-            logger.info("The value of load(s) is/are set at minimum recommended value as per IS 800:2007, Cl.10.7.")
-
-        elif self.sum_IR <= 1.0 and self.IR_moment < 0.5:
-
-            if (0.5 - self.IR_moment) < (1 - self.sum_IR):
-                self.load_moment_min = 0.5 * self.section.moment_capacity
-            else:
-                self.load_moment_min = self.load.moment * 1000000 + (
-                            (1 - self.sum_IR) * self.section.moment_capacity)
-            self.min_axial_load = self.load.axial_force * 1000
-            logger.info("The value of bending moment is less than the minimum recommended value [Ref. IS 800:2007, Cl.10.7].")
-            logger.info("The value of bending moment is set at {} kNm.".format(round(self.load_moment_min / 1000000, 2)))
-
-        elif self.sum_IR <= 1.0 and self.IR_axial < 0.3:
-
-            if (0.3 - self.IR_axial) < (1 - self.sum_IR):
-                self.min_axial_load = 0.3 * self.axial_capacity
-            else:
-                self.min_axial_load = self.load.axial_force * 1000 + ((1 - self.sum_IR) * self.axial_capacity)
-            self.load_moment_min = self.load.moment * 1000000
-            logger.info("The value of axial force is less than the minimum recommended value [Ref. IS 800:2007, Cl.10.7].")
-            logger.info("The value of axial force is set at {} kN.".format(round(self.min_axial_load / 1000, 2)))
+        if hasattr(self.section, "web_thickness") and hasattr(self.section, "depth") and hasattr(self.section, "flange_thickness"):
+            self.Z_wp = round(((self.section.web_thickness * (self.section.depth - 2 * self.section.flange_thickness) ** 2) / 4), 2)
+            self.Z_we = round(((self.section.web_thickness * (self.section.depth - 2 * self.section.flange_thickness) ** 2) / 6), 2)
         else:
-            self.min_axial_load = self.load.axial_force * 1000
-            self.load_moment_min = self.load.moment * 1000000
+            self.Z_wp = 0
+            self.Z_we = 0
 
-        ####################
-        """
-        Load Considered
-        """
-        #################
-        self.load_moment = round(max(self.load_moment_min, self.load.moment * 1000000), 2)  # N
-        self.factored_axial_load = round(max(self.load.axial_force * 1000, self.min_axial_load), 2)  # N
-        self.fact_shear_load = round(max(self.shear_load1, self.load.shear_force * 1000), 2)  # N
+        # Assign Section Class
+        self.class_of_section = int(max(self.Z_wp, self.Z_we))
 
-        self.moment_web = round((self.Z_w * self.load_moment / (self.section.plast_sec_mod_z)),
-                                2)  # Nm todo add in ddcl # z_w of web & z_p  of section
-        self.moment_flange = round(((self.load_moment) - self.moment_web), 2)
-        self.axial_force_w = ((self.section.depth - (
-                2 * self.section.flange_thickness)) * self.section.web_thickness * self.factored_axial_load) / (
-                                 self.section.area)  # N
-        self.axial_force_f = self.factored_axial_load * self.section.flange_width * self.section.flange_thickness / (
-            self.section.area)  # N
-        self.flange_force = (((self.moment_flange) / (self.section.depth - self.section.flange_thickness)) + (
-            self.axial_force_f))
+        # Compute Moment Capacity
+        if hasattr(self.section, "plastic_moment_capacty"):
+            self.section.plastic_moment_capacity(beta_b=1, Z_p=self.Z_p, fy=self.section.fy)
+            self.Pmc = self.section.plastic_moment_capacity  # Plastic Moment Capacity
+        else:
+            self.Pmc = 0  # Default to zero
 
-        ###########################################################
-        if self.factored_axial_load > self.axial_capacity:
-            logger.warning(' : The value of factored axial load exceeds the axial capacity, {} kN.'.format(
-                round(self.axial_capacity / 1000, 2)))
-            logger.error(" : Design is unsafe. \n ")
-            logger.info(" :=========End Of design===========")
+        if hasattr(self.section, "moment_d_deformation_criteria"):
+            self.section.moment_d_deformation_criteria(fy=self.section.fy, Z_e=self.Z_e)
+            self.Mdc = self.section.moment_d_def_criteria  # Deformation Moment Capacity
+        else:
+            self.Mdc = 0
+
+        self.section.moment_capacity = round(min(self.Pmc, self.Mdc), 2)
+
+        # Interaction Ratios
+        self.IR_axial = round(self.load.axial_force * 1000 / max(self.axial_capacity, 1), 4)  # Avoid division by zero
+        self.IR_shear = round(self.load.shear_force * 1000 / max(self.shear_capacity1, 1), 4)
+        self.IR_moment = round(self.load.moment * 1000000 / max(self.section.moment_capacity, 1), 4)
+        self.sum_IR = round(self.IR_axial + self.IR_moment, 4)
+
+        # Check Design Safety
+        if self.IR_axial > 1:
+            logger.error(f"Axial load exceeds capacity: {self.IR_axial} > 1.0")
             self.member_capacity_status = False
-        else:
-            if self.fact_shear_load > self.shear_capacity1:
-                logger.warning(' : The value of factored shear load exceeds by 0.6 times the shear capacity of the member, {} kN.'.format(
-                    round(self.shear_capacity1 / 1000, 2)))
-                logger.error(" : Design of members in high shear is not recommended by Osdag. Design is unsafe. \n ")
-                logger.info(" :=========End Of design===========")
-                self.member_capacity_status = False
-            else:
-                if self.load_moment > self.section.moment_capacity:
-                    self.member_capacity_status = False
-                    logger.warning(' : The value of bending moment exceeds the moment capacity of the member, i.e. {} kNm.'.format(
-                        round(self.section.moment_capacity / 1000000), 2))
-                    logger.error(" : Design is unsafe. \n ")
-                    logger.info(" :=========End Of design===========")
-                else:
-                    self.member_capacity_status = True
-                    self.initial_pt_thk(self)
+            return
+
+        if self.IR_shear > 1:
+            logger.error(f"Shear load exceeds capacity: {self.IR_shear} > 1.0")
+            self.member_capacity_status = False
+            return
+
+        if self.IR_moment > 1:
+            logger.error(f"Bending moment exceeds capacity: {self.IR_moment} > 1.0")
+            self.member_capacity_status = False
+            return
+
+        # If All Checks Pass, Design is Safe
+        self.member_capacity_status = True
+        logger.info("Beam cover plate design is safe.")
+
+        return
 
          #############################################################
 

@@ -50,6 +50,9 @@ const InputDock = () => {
     flangeThicknessSelected,
   } = useSelector((state) => state.commonInputs);
   const {
+    selectedGrade,
+    selectedConnector,
+    selectedBeamGrade,
     ultimateStrengthMaterial,
     yieldStrength20mmMaterial,
     ultimateStrength,
@@ -122,6 +125,9 @@ const InputDock = () => {
       yieldStrength20mmMaterial,
       selectedBeam,
       beamProperties,
+      selectedGrade,
+      selectedConnector,
+      selectedBeamGrade,
       ultimateStrength,
       yieldStrength20mm,
       yieldStrength40mm,

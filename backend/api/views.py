@@ -1,9 +1,12 @@
 from rest_framework.views import APIView
 from rest_framework.response import Response
 from rest_framework import status
+import os
 import sqlite3
 from .serializers import BoltDiameterSerializer, MaterialSerializer, BeamSerializer, DesignInputSerializer
 from django.conf import settings
+from .osdag.beam_cover_plate import BeamCoverPlate #Import Osdag's beam cover plate module
+from .osdag.reportGenerator_latex import CreateLatex #Import report generator
 
 class HelloWorld(APIView):
     def get(self, request):
@@ -97,82 +100,90 @@ class BeamAPIView(APIView):
             # Always close the database connection
             conn.close()
 
+
 class SubmitDesignDataAPIView(APIView):
     """
     API View to handle the submission of form data from React,
-    assign the data to variables, and return a response.
+    perform design calculations, and return STL and PDF reports.
     """
 
     def post(self, request):
         serializer = DesignInputSerializer(data=request.data)
-        
+
         if serializer.is_valid():
             validated_data = serializer.validated_data
 
-            # Assigning data to variables
-            bending_moment = validated_data.get("bendingMoment")
-            shear_force = validated_data.get("shearForce")
-            axial_force = validated_data.get("axialForce")
-            bolt_type = validated_data.get("boltType")
-            selected_beam = validated_data.get("selectedBeam")
-            beam_properties = validated_data.get("beamProperties")  # JSON object
-            flange_thickness_selected = validated_data.get("flangeThicknessSelected")
-            web_thickness_selected = validated_data.get("webThicknessSelected")
-            selected_diameters = validated_data.get("selectedDiameters")
+            # ✅ Assign input values with correct keys matching input_values()
+            design_data = {
+                "Module": "Moment Connection",
+                "Connectivity": "Beam-Beam",
+                "Load.Shear": validated_data.get("shear_force", 0),
+                "Load.Axial": validated_data.get("axial_force", 0),
+                "Load.Moment": validated_data.get("bending_moment", 0),
+                "Bolt Type": validated_data.get("bolt_type", "HSFG"),
+                "Corrosive Influence": validated_data.get("corrosive_influence", "No"),
+                "Design Method": validated_data.get("design_method", "Limit State Design"),
+                "Edge Method": validated_data.get("edge_method", "Sheared or hand flame cut"),
+                "Flange.Thickness": validated_data.get("flange_thickness_selected", []),
+                "Gap": validated_data.get("gap_between_beam_and_support", 10),
+                "Modulus of Elasticity": validated_data.get("modulus_of_elasticity", 200),
+                "Modulus of Rigidity": validated_data.get("modulus_of_rigidity", 76.9),
+                "Poisson's Ratio": validated_data.get("poissons_ratio", 0.3),
+                "Member.Designation": validated_data.get("selected_beam", ""),
+                "Bolt.Diameters": validated_data.get("selected_diameters", []),
+                "Slip Factor": validated_data.get("slip_factor", 0.3),
+                "Thermal Expansion Coefficient": validated_data.get("thermal_expansion_coefficient", 12),
+                "Type of Beam": validated_data.get("type_beam", "Rolled"),
+                "Ultimate Strength": validated_data.get("ultimate_strength", 410),
+                "Web.Thickness": validated_data.get("web_thickness_selected", []),
+                "Yield Strength 20mm": validated_data.get("yield_strength_20mm", 250),
+                "Yield Strength 40mm": validated_data.get("yield_strength_40mm", 240),
+                "Yield Strength >40mm": validated_data.get("yield_strength_greater_40mm", 230),
+                "Beam.Properties": validated_data.get("beam_properties", {})
+            }
 
-            # Mechanical properties
-            modulus_of_elasticity = validated_data.get("modulusOfElasticity")
-            modulus_of_rigidity = validated_data.get("modulusOfRigidity")
-            poissons_ratio = validated_data.get("poissonsRatio")
-            thermal_expansion_coefficient = validated_data.get("thermalExpansionCoefficient")
+            # Initialize and set input values
+            beam_cover = BeamCoverPlate()
+            beam_cover.set_input_values(design_data)
 
-            # Strength parameters
-            ultimate_strength = validated_data.get("ultimateStrength")
-            yield_strength_20mm = validated_data.get("yieldStrength20mm")
-            yield_strength_40mm = validated_data.get("yieldStrength40mm")
-            yield_strength_greater_40mm = validated_data.get("yieldStrengthGreater40mm")
+            # Perform design calculations
+            beam_cover.member_capacity()
 
-            # Additional design parameters
-            slip_factor = validated_data.get("slipFactor")
-            edge_method = validated_data.get("edgeMethod")
-            gap_between_beam_and_support = validated_data.get("gapBetweenBeamAndSupport")
-            corrosive_influence = validated_data.get("corrosiveInfluence")
-            design_method = validated_data.get("designMethod")
-            type_beam = validated_data.get("typeBeam")
+            # Check if the design is valid
+            if not beam_cover.member_capacity_status:
+                return Response({"status": "error", "message": "Design is unsafe"}, status=400)
 
-            # Example calculation (replace with actual calculations)
-            example_calculation = (bending_moment or 0) + (shear_force or 0) - (axial_force or 0)
+            # Generate STL Model (Placeholder)
+            stl_path = os.path.join(settings.MEDIA_ROOT, "beam_cover_plate.stl")
+            self.generate_stl(beam_cover, stl_path)
 
-            # Return response with the received data and example calculations
-            return Response(
-                {
-                    "message": "Form data received successfully",
-                    "bending_moment": bending_moment,
-                    "shear_force": shear_force,
-                    "axial_force": axial_force,
-                    "bolt_type": bolt_type,
-                    "selected_beam": selected_beam,
-                    "beam_properties": beam_properties,
-                    "flange_thickness_selected": flange_thickness_selected,
-                    "web_thickness_selected": web_thickness_selected,
-                    "selected_diameters": selected_diameters,
-                    "modulus_of_elasticity": modulus_of_elasticity,
-                    "modulus_of_rigidity": modulus_of_rigidity,
-                    "poissons_ratio": poissons_ratio,
-                    "thermal_expansion_coefficient": thermal_expansion_coefficient,
-                    "ultimate_strength": ultimate_strength,
-                    "yield_strength_20mm": yield_strength_20mm,
-                    "yield_strength_40mm": yield_strength_40mm,
-                    "yield_strength_greater_40mm": yield_strength_greater_40mm,
-                    "slip_factor": slip_factor,
-                    "edge_method": edge_method,
-                    "gap_between_beam_and_support": gap_between_beam_and_support,
-                    "corrosive_influence": corrosive_influence,
-                    "design_method": design_method,
-                    "type_beam": type_beam,
-                    "example_calculation": example_calculation,
-                },
-                status=status.HTTP_200_OK,
-            )
-        
+            # Generate PDF Report
+            report_path = self.generate_design_report(beam_cover)
+
+            return Response({
+                "status": "success",
+                "stl_file": stl_path,
+                "report_file": report_path
+            }, status=status.HTTP_200_OK)
+
         return Response(serializer.errors, status=status.HTTP_400_BAD_REQUEST)
+
+    def generate_stl(self, beam_cover, stl_path):
+        """
+        Placeholder function to generate STL file for the 3D model.
+        """
+        with open(stl_path, "w") as f:
+            f.write("Generated STL file for Beam Cover Plate")
+
+    def generate_design_report(self, beam_cover):
+        """
+        Generates the design report PDF using PyLaTeX.
+        """
+        report_dir = os.path.join(settings.MEDIA_ROOT)
+        os.makedirs(report_dir, exist_ok=True)
+        report_path = os.path.join(report_dir, "design_report.pdf")
+
+        doc = CreateLatex()
+        doc.save_latex(beam_cover, {}, {}, report_path, "", "", "", "Beam Cover Plate Bolted")
+
+        return report_path
